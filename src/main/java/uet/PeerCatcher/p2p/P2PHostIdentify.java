@@ -155,11 +155,7 @@ public class P2PHostIdentify {
         ControlledJob ctrl_Job_p2p_host_detection = new ControlledJob(conf);
         ctrl_Job_p2p_host_detection.setJob(Job_p2p_host_detection);
 		FileInputFormat.addInputPath(Job_p2p_host_detection,
-//				new Path(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/INFileModiPUT/Legi"));
-//        FileInputFormat.addInputPath(Job_p2p_host_detection,
                 new Path(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/INPUT/P2P"));
-//        FileInputFormat.addInputPath(Job_p2p_host_detection,
-//                new Path(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/INPUT/Wild_P2P"));
         FileOutputFormat.setOutputPath(Job_p2p_host_detection,
                 new Path(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_detection"));
         Job_p2p_host_detection.setNumReduceTasks(18);
