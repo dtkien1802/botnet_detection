@@ -25,6 +25,7 @@ import org.apache.log4j.BasicConfigurator;
 
 import uet.PeerCatcher.config.PeerCatcherConfigure;
 import uet.PeerCatcher.main.FileModifier;
+import uet.PeerCatcher.mcg.CalculateMutualContactScore;
 
 public class P2PHostIdentify {
 
@@ -42,7 +43,7 @@ public class P2PHostIdentify {
         @Override
         protected void reduce(Text key, Iterable<Text> values, Context context)
                 throws IOException, InterruptedException {
-            Set<String> nodeSet = new HashSet<String>();
+            Set<String> nodeSet = new HashSet<>();
             for (Text i : values) {
                 nodeSet.add(i.toString());
             }
@@ -64,15 +65,6 @@ public class P2PHostIdentify {
 			String bppin = sets[3];
 			bppin = bppin.substring(0, bppin.length() - 1);
             if (bppin.length() == 0) bppin = "0";
-//			System.out.println(line[0] + "," + sets[0] + "," + bppout + "," + bppin);
-//            Integer bppout = Integer.parseInt(sets[2]);
-//            Integer bppin = Integer.parseInt(sets[3]);
-//            bppout /= p2p_host_merging_threshold;
-//            bppin /= p2p_host_merging_threshold;
-            //System.out.println(line[0] + "," + sets[0] + "," + Integer.toString(bppout) + "," + Integer.toString(bppin));
-//            context.write(new Text(line[0] + "," + sets[0] + "," + Integer.toString(bppout) + "," + Integer.toString(bppin)), new Text(sets[1]));
-
-//            context.write(new Text(line[0] + "," + sets[0] + "," + bppout + "," + bppin), new Text(sets[1]));
             context.write(new Text(line[0] + "," + sets[0] + "," + bppout + "," + bppin), new Text(sets[1] + "," + sets[4] + "," + sets[5]));
         }
     }
@@ -82,17 +74,17 @@ public class P2PHostIdentify {
         @Override
         protected void reduce(Text key, Iterable<Text> values, Context context)
                 throws IOException, InterruptedException {
-            Set<String> Distinct16Set = new HashSet<String>();
-            Set<String> Distinct32Set = new HashSet<String>();
-            List<String> cache = new ArrayList<String>();
+            Set<String> Distinct16Set = new HashSet<>();
+            Set<String> Distinct32Set = new HashSet<>();
+            List<String> cache = new ArrayList<>();
             int flag = -1;
             for (Text i : values) {
                 String[] set_values = i.toString().split(",");
                 String dst_ip = set_values[0];
-                String[] sets = dst_ip.toString().split("\\.");
+                String[] sets = dst_ip.split("\\.");
                 Distinct16Set.add(sets[0] + "." + sets[1]);
-                Distinct32Set.add(dst_ip.toString());
-                cache.add(dst_ip.toString());
+                Distinct32Set.add(dst_ip);
+                cache.add(dst_ip);
 
                 if (Distinct16Set.size() >= p2p_host_detection_threshold
                         && Distinct32Set.size() >= p2p_host_detection_threshold_number_of_ips) {
@@ -102,7 +94,7 @@ public class P2PHostIdentify {
             }
 
             if(flag == 2) {
-                Set<String> PortSet = new HashSet<String>();
+                Set<String> PortSet = new HashSet<>();
                 for (Text i : values) {
                     String[] set_values = i.toString().split(",");
                     PortSet.add(set_values[1]);
@@ -132,12 +124,9 @@ public class P2PHostIdentify {
 
 
 
-    private static int p2p_host_detection_threshold = PeerCatcherConfigure.P2P_HOST_DETECTION_THRESHOLD_DEFAULT;
+    private static final int p2p_host_detection_threshold = PeerCatcherConfigure.P2P_HOST_DETECTION_THRESHOLD_DEFAULT;
 
-    private static int p2p_host_detection_threshold_number_of_ips = PeerCatcherConfigure.P2P_HOST_DETECTION_THRESHOLD_NumberOfIPs;
-
-    private static int p2p_host_merging_threshold = PeerCatcherConfigure.P2P_HOST_MERGING_THRESHOLD;
-    private static HashMap<String, String> IP_MAP;
+    private static final int p2p_host_detection_threshold_number_of_ips = PeerCatcherConfigure.P2P_HOST_DETECTION_THRESHOLD_NumberOfIPs;
 
     public static void run(String ID) throws IllegalArgumentException, IOException {
         String Graph = "Graph_" + ID;
@@ -146,19 +135,10 @@ public class P2PHostIdentify {
         System.out.print(InputFolder);
         File folder = new File(InputFolder + "/");
         File[] listOfFiles = folder.listFiles();
-        IP_MAP = new HashMap<String, String>();
+        HashMap<String, String> IP_MAP = new HashMap<>();
 
-        for (File file : listOfFiles) {
-            if (file.isFile() && !file.getName().substring(0, 1).equals(".")) {
-                BufferedReader br = new BufferedReader(new FileReader(InputFolder + "/" + file.getName()));
-                String line = "";
-                while ((line = br.readLine()) != null && line.contains(".")) {
-                    String[] lines = line.split("\t");
-                    IP_MAP.put(lines[0], lines[1]);
-                }
-                br.close();
-            }
-        }
+        assert listOfFiles != null;
+        CalculateMutualContactScore.buildIPMap(InputFolder, listOfFiles, IP_MAP);
 
         BasicConfigurator.configure();
         JobConf conf = new JobConf(P2PHostIdentify.class);
@@ -237,11 +217,23 @@ public class P2PHostIdentify {
 
         FileModifier.deleteDir(new File(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency"));
         File f = new File(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency");
-        f.mkdir();
+
+        boolean created = f.mkdir();
+        if (created) {
+            System.out.println("Directory p2p_host_frequency created successfully");
+        } else {
+            System.out.println("Failed to create directory p2p_host_frequency");
+        }
 
         FileModifier.deleteDir(new File(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency2"));
         File f2 = new File(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency2");
-        f2.mkdir();
+
+        boolean created2 = f2.mkdir();
+        if (created2) {
+            System.out.println("Directory p2p_host_frequency2 created successfully");
+        } else {
+            System.out.println("Failed to create directory p2p_host_frequency2");
+        }
 
         String OutputFolder = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency/";
         String OutputFolder2 = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency2/";
@@ -250,11 +242,12 @@ public class P2PHostIdentify {
 
         PrintWriter writer_IDtoIP = new PrintWriter(OutputFolder + "p2pFrequency.txt", "UTF-8");
         PrintWriter writer2 = new PrintWriter(OutputFolder2 + "p2pFrequency2.txt", "UTF-8");
-        String line = "";
-        HashMap<String, Integer> map_p2p = new HashMap<String, Integer>();
-        HashMap<String, Integer> map_total_p2p = new HashMap<String, Integer>();
+        String line;
+        HashMap<String, Integer> map_p2p = new HashMap<>();
+        HashMap<String, Integer> map_total_p2p = new HashMap<>();
+        assert listOfFiles != null;
         for (File file : listOfFiles) {
-            if (file.isFile() && !file.getName().substring(0, 1).equals(".")) {
+            if (file.isFile() && file.getName().charAt(0) != '.') {
                 BufferedReader br = new BufferedReader(new FileReader(InputFolder + "/" + file.getName()));
 
                 while ((line = br.readLine()) != null) {
