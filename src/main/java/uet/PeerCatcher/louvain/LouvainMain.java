@@ -16,11 +16,11 @@ public class LouvainMain {
 
     public static void Louvain(String ID, double resolution_) throws IOException {
         String Graph = "Graph_" + ID;
-        boolean printOutput, update;
+        boolean update;
         double modularity, maxModularity, resolution, resolution2;
-        int algorithm, i, j, modularityFunction, nClusters, nIterations, nRandomStarts;
+        int i, j, modularityFunction, nIterations, nRandomStarts;
         int[] cluster;
-        long beginTime, endTime, randomSeed;
+        long randomSeed;
         Network network;
         Random random;
 
@@ -36,96 +36,44 @@ public class LouvainMain {
 
         modularityFunction = 1;
         resolution = resolution_;
-        algorithm = 1;
         nRandomStarts = 100;
         nIterations = 100;
         randomSeed = 0;
-        printOutput = false; // (1 > 0);
 
         String inputFileName = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/mutual_contact_graph/LouvainInput.txt";
         String outputFileName = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/louvain_communities_detection/" + Graph + "_"
                 + resolution + ".txt";
 
-        if (printOutput) {
-            System.out.println("Reading input file...");
-            System.out.println();
-        }
-
         network = readInputFile(inputFileName, modularityFunction);
 
-        if (printOutput) {
-            System.out.format("Number of nodes: %d%n", network.getNNodes());
-            System.out.format("Number of edges: %d%n", network.getNEdges() / 2);
-            System.out.println();
-            System.out.println("Running " + ((algorithm == 1) ? "Louvain algorithm"
-                    : ((algorithm == 2) ? "Louvain algorithm with multilevel refinement"
-                    : "smart local moving algorithm"))
-                    + "...");
-            System.out.println();
-        }
+        resolution2 = resolution / network.getTotalEdgeWeight();
 
-        resolution2 = ((modularityFunction == 1) ? (resolution / network.getTotalEdgeWeight()) : resolution);
-
-        beginTime = System.currentTimeMillis();
         cluster = null;
-        nClusters = -1;
         maxModularity = Double.NEGATIVE_INFINITY;
         random = new Random(randomSeed);
         for (i = 0; i < nRandomStarts; i++) {
-            if (printOutput && (nRandomStarts > 1))
-                System.out.format("Random start: %d%n", i + 1);
 
             network.initSingletonClusters();
 
             j = 0;
-            update = true;
             do {
-                if (printOutput && (nIterations > 1))
-                    System.out.format("Iteration: %d%n", j + 1);
 
-                if (algorithm == 1)
-                    update = network.runLouvainAlgorithm(resolution2, random);
-                else if (algorithm == 2)
-                    update = network.runLouvainAlgorithmWithMultilevelRefinement(resolution2, random);
-                else if (algorithm == 3)
-                    network.runSmartLocalMovingAlgorithm(resolution2, random);
+                update = network.runLouvainAlgorithm(resolution2, random);
                 j++;
 
                 modularity = network.calcQualityFunction(resolution2);
 
-                if (printOutput && (nIterations > 1))
-                    System.out.format("Modularity: %.4f%n", modularity);
             } while ((j < nIterations) && update);
 
             if (modularity > maxModularity) {
                 network.orderClustersByNNodes();
                 cluster = network.getClusters();
-                nClusters = network.getNClusters();
                 maxModularity = modularity;
             }
 
-            if (printOutput && (nRandomStarts > 1)) {
-                if (nIterations == 1)
-                    System.out.format("Modularity: %.4f%n", modularity);
-                System.out.println();
-            }
-        }
-        endTime = System.currentTimeMillis();
-
-        if (printOutput) {
-            if (nRandomStarts == 1) {
-                if (nIterations > 1)
-                    System.out.println();
-                System.out.format("Modularity: %.4f%n", maxModularity);
-            } else
-                System.out.format("Maximum modularity in %d random starts: %.4f%n", nRandomStarts, maxModularity);
-            System.out.format("Number of communities: %d%n", nClusters);
-            System.out.format("Elapsed time: %d seconds%n", Math.round((endTime - beginTime) / 1000.0));
-            System.out.println();
-            System.out.println("Writing output file...");
-            System.out.println();
         }
 
+        assert cluster != null;
         writeOutputFile(outputFileName, cluster);
 
         System.out.println("Communities are OK!");
@@ -222,7 +170,7 @@ public class LouvainMain {
         bufferedWriter = new BufferedWriter(new FileWriter(fileName));
 
         for (i = 0; i < cluster.length; i++) {
-            bufferedWriter.write(i + "," + Integer.toString(cluster[i]));
+            bufferedWriter.write(i + "," + cluster[i]);
             bufferedWriter.newLine();
         }
 

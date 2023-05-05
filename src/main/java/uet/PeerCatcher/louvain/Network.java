@@ -1,10 +1,7 @@
 package uet.PeerCatcher.louvain;
 
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Arrays;
@@ -13,18 +10,6 @@ import java.util.Random;
 public class Network implements Cloneable, Serializable {
     private static final long serialVersionUID = 1;
 
-    public static Network load(String fileName) throws ClassNotFoundException, IOException {
-        Network network;
-        ObjectInputStream objectInputStream;
-
-        objectInputStream = new ObjectInputStream(new FileInputStream(fileName));
-
-        network = (Network) objectInputStream.readObject();
-
-        objectInputStream.close();
-
-        return network;
-    }
     private int nNodes;
     private int[] firstNeighborIndex;
     private int[] neighbor;
@@ -41,10 +26,6 @@ public class Network implements Cloneable, Serializable {
     private boolean clusteringStatsAvailable;
 
     private Network() {
-    }
-
-    public Network(int nNodes, int[] firstNeighborIndex, int[] neighbor) {
-        this(nNodes, firstNeighborIndex, neighbor, null, null, null);
     }
 
     public Network(int nNodes, int[] firstNeighborIndex, int[] neighbor, double[] edgeWeight) {
@@ -71,67 +52,6 @@ public class Network implements Cloneable, Serializable {
                 this.edgeWeight[i] = 1;
         } else
             this.edgeWeight = edgeWeight;
-
-        if (nodeWeight == null) {
-            this.nodeWeight = new double[nNodes];
-            for (i = 0; i < nNodes; i++)
-                this.nodeWeight[i] = 1;
-        } else
-            this.nodeWeight = nodeWeight;
-
-        setClusters(cluster);
-    }
-
-    public Network(int nNodes, int[][] edge) {
-        this(nNodes, edge, null, null, null);
-    }
-
-    public Network(int nNodes, int[][] edge, double[] edgeWeight) {
-        this(nNodes, edge, edgeWeight, null, null);
-    }
-
-    public Network(int nNodes, int[][] edge, double[] edgeWeight, double[] nodeWeight) {
-        this(nNodes, edge, edgeWeight, nodeWeight, null);
-    }
-
-    public Network(int nNodes, int[][] edge, double[] edgeWeight, double[] nodeWeight, int[] cluster) {
-        double[] edgeWeight2;
-        int i, j, nEdges, nEdgesWithoutSelfLinks;
-        int[] neighbor;
-
-        this.nNodes = nNodes;
-
-        nEdges = edge[0].length;
-        firstNeighborIndex = new int[nNodes + 1];
-        if (edgeWeight == null) {
-            edgeWeight = new double[nEdges];
-            for (i = 0; i < nEdges; i++)
-                edgeWeight[i] = 1;
-        }
-        totalEdgeWeightSelfLinks = 0;
-
-        neighbor = new int[nEdges];
-        edgeWeight2 = new double[nEdges];
-        i = 1;
-        nEdgesWithoutSelfLinks = 0;
-        for (j = 0; j < nEdges; j++)
-            if (edge[0][j] == edge[1][j])
-                totalEdgeWeightSelfLinks += edgeWeight[j];
-            else {
-                if (edge[0][j] >= i)
-                    for (; i <= edge[0][j]; i++)
-                        firstNeighborIndex[i] = nEdgesWithoutSelfLinks;
-                neighbor[nEdgesWithoutSelfLinks] = edge[1][j];
-                edgeWeight2[nEdgesWithoutSelfLinks] = edgeWeight[j];
-                nEdgesWithoutSelfLinks++;
-            }
-        for (; i <= nNodes; i++)
-            firstNeighborIndex[i] = nEdgesWithoutSelfLinks;
-
-        this.neighbor = new int[nEdgesWithoutSelfLinks];
-        System.arraycopy(neighbor, 0, this.neighbor, 0, nEdgesWithoutSelfLinks);
-        this.edgeWeight = new double[nEdgesWithoutSelfLinks];
-        System.arraycopy(edgeWeight2, 0, this.edgeWeight, 0, nEdgesWithoutSelfLinks);
 
         if (nodeWeight == null) {
             this.nodeWeight = new double[nNodes];
@@ -223,130 +143,8 @@ public class Network implements Cloneable, Serializable {
         clusteringStatsAvailable = false;
     }
 
-    public void findConnectedComponents() {
-        int i, j;
-        int[] neighborIndex, node;
-
-        cluster = new int[nNodes];
-        for (i = 0; i < nNodes; i++)
-            cluster[i] = -1;
-
-        node = new int[nNodes];
-        neighborIndex = new int[nNodes];
-
-        nClusters = 0;
-        for (i = 0; i < nNodes; i++)
-            if (cluster[i] == -1) {
-                cluster[i] = nClusters;
-                node[0] = i;
-                neighborIndex[0] = firstNeighborIndex[i];
-                j = 0;
-                do
-                    if (neighborIndex[j] == firstNeighborIndex[node[j] + 1])
-                        j--;
-                    else if (cluster[neighbor[neighborIndex[j]]] == -1) {
-                        cluster[neighbor[neighborIndex[j]]] = nClusters;
-                        node[j + 1] = neighbor[neighborIndex[j]];
-                        neighborIndex[j + 1] = firstNeighborIndex[node[j + 1]];
-                        neighborIndex[j]++;
-                        j++;
-                    } else
-                        neighborIndex[j]++;
-                while (j >= 0);
-
-                nClusters++;
-            }
-
-        deleteClusteringStats();
-    }
-
     public int[] getClusters() {
         return cluster;
-    }
-
-    public double[] getClusterWeights() {
-        if (cluster == null)
-            return null;
-
-        if (!clusteringStatsAvailable)
-            calcClusteringStats();
-
-        return clusterWeight;
-    }
-
-    public int[][] getEdges() {
-        int[][] edge;
-        int i, j;
-
-        edge = new int[2][neighbor.length];
-        for (i = 0; i < nNodes; i++)
-            for (j = firstNeighborIndex[i]; j < firstNeighborIndex[i + 1]; j++) {
-                edge[0][j] = i;
-                edge[1][j] = neighbor[j];
-            }
-
-        return edge;
-    }
-
-    public double[] getEdgeWeights() {
-        return edgeWeight;
-    }
-
-    public Network getLargestConnectedComponent() {
-        double maxClusterWeight;
-        int i, largestCluster;
-        Network clonedNetwork;
-
-        clonedNetwork = (Network) clone();
-
-        clonedNetwork.findConnectedComponents();
-
-        clonedNetwork.calcClusteringStats();
-        largestCluster = -1;
-        maxClusterWeight = -1;
-        for (i = 0; i < clonedNetwork.nClusters; i++)
-            if (clonedNetwork.clusterWeight[i] > maxClusterWeight) {
-                largestCluster = i;
-                maxClusterWeight = clonedNetwork.clusterWeight[i];
-            }
-
-        return clonedNetwork.getSubnetwork(largestCluster);
-    }
-
-    public int getNClusters() {
-        return nClusters;
-    }
-
-    public int getNEdges() {
-        return neighbor.length;
-    }
-
-    public int getNNodes() {
-        return nNodes;
-    }
-
-    public int[] getNNodesPerCluster() {
-        if (cluster == null)
-            return null;
-
-        if (!clusteringStatsAvailable)
-            calcClusteringStats();
-
-        return nNodesPerCluster;
-    }
-
-    public int[][] getNodesPerCluster() {
-        if (cluster == null)
-            return null;
-
-        if (!clusteringStatsAvailable)
-            calcClusteringStats();
-
-        return nodePerCluster;
-    }
-
-    public double[] getNodeWeights() {
-        return nodeWeight;
     }
 
     public Network getReducedNetwork() {
@@ -414,95 +212,6 @@ public class Network implements Cloneable, Serializable {
         return reducedNetwork;
     }
 
-    public Network getSubnetwork(int cluster) {
-        double[] subnetworkEdgeWeight;
-        int[] subnetworkNeighbor, subnetworkNode;
-
-        if (this.cluster == null)
-            return null;
-
-        if (!clusteringStatsAvailable)
-            calcClusteringStats();
-
-        subnetworkNode = new int[nNodes];
-        subnetworkNeighbor = new int[neighbor.length];
-        subnetworkEdgeWeight = new double[edgeWeight.length];
-
-        return getSubnetwork(cluster, subnetworkNode, subnetworkNeighbor, subnetworkEdgeWeight);
-    }
-
-    private Network getSubnetwork(int cluster, int[] subnetworkNode, int[] subnetworkNeighbor,
-                                  double[] subnetworkEdgeWeight) {
-        int i, j, k, subnetworkNEdges, subnetworkNNodes;
-        Network subnetwork;
-
-        subnetwork = new Network();
-
-        subnetworkNNodes = nodePerCluster[cluster].length;
-        subnetwork.nNodes = subnetworkNNodes;
-
-        if (subnetworkNNodes == 1) {
-            subnetwork.firstNeighborIndex = new int[2];
-            subnetwork.neighbor = new int[0];
-            subnetwork.edgeWeight = new double[0];
-            subnetwork.nodeWeight = new double[] { nodeWeight[nodePerCluster[cluster][0]] };
-        } else {
-            for (i = 0; i < nodePerCluster[cluster].length; i++)
-                subnetworkNode[nodePerCluster[cluster][i]] = i;
-
-            subnetwork.firstNeighborIndex = new int[subnetworkNNodes + 1];
-            subnetwork.nodeWeight = new double[subnetworkNNodes];
-
-            subnetworkNEdges = 0;
-            for (i = 0; i < subnetworkNNodes; i++) {
-                j = nodePerCluster[cluster][i];
-
-                for (k = firstNeighborIndex[j]; k < firstNeighborIndex[j + 1]; k++)
-                    if (this.cluster[neighbor[k]] == cluster) {
-                        subnetworkNeighbor[subnetworkNEdges] = subnetworkNode[neighbor[k]];
-                        subnetworkEdgeWeight[subnetworkNEdges] = edgeWeight[k];
-                        subnetworkNEdges++;
-                    }
-                subnetwork.firstNeighborIndex[i + 1] = subnetworkNEdges;
-
-                subnetwork.nodeWeight[i] = nodeWeight[j];
-            }
-
-            subnetwork.neighbor = new int[subnetworkNEdges];
-            subnetwork.edgeWeight = new double[subnetworkNEdges];
-            System.arraycopy(subnetworkNeighbor, 0, subnetwork.neighbor, 0, subnetworkNEdges);
-            System.arraycopy(subnetworkEdgeWeight, 0, subnetwork.edgeWeight, 0, subnetworkNEdges);
-        }
-
-        subnetwork.totalEdgeWeightSelfLinks = 0;
-
-        return subnetwork;
-    }
-
-    public Network[] getSubnetworks() {
-        double[] subnetworkEdgeWeight;
-        int i;
-        int[] subnetworkNeighbor, subnetworkNode;
-        Network[] subnetwork;
-
-        if (cluster == null)
-            return null;
-
-        if (!clusteringStatsAvailable)
-            calcClusteringStats();
-
-        subnetwork = new Network[nClusters];
-
-        subnetworkNode = new int[nNodes];
-        subnetworkNeighbor = new int[neighbor.length];
-        subnetworkEdgeWeight = new double[edgeWeight.length];
-
-        for (i = 0; i < nClusters; i++)
-            subnetwork[i] = getSubnetwork(i, subnetworkNode, subnetworkNeighbor, subnetworkEdgeWeight);
-
-        return subnetwork;
-    }
-
     public double getTotalEdgeWeight() {
         double totalEdgeWeight;
         int i;
@@ -512,17 +221,6 @@ public class Network implements Cloneable, Serializable {
             totalEdgeWeight += edgeWeight[i];
 
         return totalEdgeWeight;
-    }
-
-    public double getTotalNodeWeight() {
-        double totalNodeWeight;
-        int i;
-
-        totalNodeWeight = 0;
-        for (i = 0; i < nNodes; i++)
-            totalNodeWeight += nodeWeight[i];
-
-        return totalNodeWeight;
     }
 
     public void initSingletonClusters() {
@@ -554,7 +252,7 @@ public class Network implements Cloneable, Serializable {
         deleteClusteringStats();
     }
 
-    private void orderClusters(boolean orderByWeight) {
+    private void orderClusters() {
         class ClusterSize implements Comparable<ClusterSize> {
             public int cluster;
             public double size;
@@ -566,7 +264,7 @@ public class Network implements Cloneable, Serializable {
 
             @Override
             public int compareTo(ClusterSize cluster) {
-                return (cluster.size > size) ? 1 : ((cluster.size < size) ? -1 : 0);
+                return Double.compare(cluster.size, size);
             }
         }
 
@@ -582,7 +280,7 @@ public class Network implements Cloneable, Serializable {
 
         clusterSize = new ClusterSize[nClusters];
         for (i = 0; i < nClusters; i++)
-            clusterSize[i] = new ClusterSize(i, orderByWeight ? clusterWeight[i] : nNodesPerCluster[i]);
+            clusterSize[i] = new ClusterSize(i, nNodesPerCluster[i]);
 
         Arrays.sort(clusterSize);
 
@@ -600,106 +298,7 @@ public class Network implements Cloneable, Serializable {
     }
 
     public void orderClustersByNNodes() {
-        orderClusters(false);
-    }
-
-    public void orderClustersByWeight() {
-        orderClusters(true);
-    }
-
-    public boolean removeCluster(int cluster) {
-        boolean removed;
-
-        if (this.cluster == null)
-            return false;
-
-        if (!clusteringStatsAvailable)
-            calcClusteringStats();
-
-        removed = removeCluster2(cluster);
-
-        deleteClusteringStats();
-
-        return removed;
-    }
-
-    private boolean removeCluster2(int cluster) {
-        double maxQualityFunction, qualityFunction;
-        double[] reducedNetworkEdgeWeight;
-        int bestCluster, i, j;
-
-        reducedNetworkEdgeWeight = new double[nClusters];
-        for (i = 0; i < nNodes; i++)
-            if (this.cluster[i] == cluster)
-                for (j = firstNeighborIndex[i]; j < firstNeighborIndex[i + 1]; j++)
-                    reducedNetworkEdgeWeight[this.cluster[neighbor[j]]] += edgeWeight[j];
-
-        bestCluster = -1;
-        maxQualityFunction = 0;
-        for (i = 0; i < nClusters; i++)
-            if ((i != cluster) && (clusterWeight[i] > 0)) {
-                qualityFunction = reducedNetworkEdgeWeight[i] / clusterWeight[i];
-                if (qualityFunction > maxQualityFunction) {
-                    bestCluster = i;
-                    maxQualityFunction = qualityFunction;
-                }
-            }
-
-        if (bestCluster == -1)
-            return false;
-
-        for (i = 0; i < nNodes; i++)
-            if (this.cluster[i] == cluster)
-                this.cluster[i] = bestCluster;
-
-        clusterWeight[bestCluster] += clusterWeight[cluster];
-        clusterWeight[cluster] = 0;
-
-        if (cluster == nClusters - 1) {
-            i = 0;
-            for (j = 0; j < nNodes; j++)
-                if (this.cluster[j] > i)
-                    i = this.cluster[j];
-            nClusters = i + 1;
-        }
-
-        return true;
-    }
-
-    public void removeSmallClusters(double minClusterWeight) {
-        boolean[] ignore;
-        double minClusterWeight2;
-        int i, smallestCluster;
-        Network reducedNetwork;
-
-        if (cluster == null)
-            return;
-
-        reducedNetwork = getReducedNetwork();
-        reducedNetwork.initSingletonClusters();
-        reducedNetwork.calcClusteringStats();
-
-        ignore = new boolean[nClusters];
-        do {
-            smallestCluster = -1;
-            minClusterWeight2 = minClusterWeight;
-            for (i = 0; i < reducedNetwork.nClusters; i++)
-                if ((!ignore[i]) && (reducedNetwork.clusterWeight[i] < minClusterWeight2)) {
-                    smallestCluster = i;
-                    minClusterWeight2 = reducedNetwork.clusterWeight[i];
-                }
-
-            if (smallestCluster >= 0) {
-                reducedNetwork.removeCluster2(smallestCluster);
-                ignore[smallestCluster] = true;
-            }
-        } while (smallestCluster >= 0);
-
-        mergeClusters(reducedNetwork.getClusters());
-    }
-
-    public boolean runLocalMovingAlgorithm(double resolution) {
-        return runLocalMovingAlgorithm(resolution, new Random());
+        orderClusters();
     }
 
     public boolean runLocalMovingAlgorithm(double resolution, Random random) {
@@ -809,10 +408,6 @@ public class Network implements Cloneable, Serializable {
         return update;
     }
 
-    public boolean runLouvainAlgorithm(double resolution) {
-        return runLouvainAlgorithm(resolution, new Random());
-    }
-
     public boolean runLouvainAlgorithm(double resolution, Random random) {
         boolean update, update2;
         Network reducedNetwork;
@@ -838,104 +433,6 @@ public class Network implements Cloneable, Serializable {
         deleteClusteringStats();
 
         return update;
-    }
-
-    public boolean runLouvainAlgorithmWithMultilevelRefinement(double resolution) {
-        return runLouvainAlgorithmWithMultilevelRefinement(resolution, new Random());
-    }
-
-    public boolean runLouvainAlgorithmWithMultilevelRefinement(double resolution, Random random) {
-        boolean update, update2;
-        Network reducedNetwork;
-
-        if ((cluster == null) || (nNodes == 1))
-            return false;
-
-        update = runLocalMovingAlgorithm(resolution, random);
-
-        if (nClusters < nNodes) {
-            reducedNetwork = getReducedNetwork();
-            reducedNetwork.initSingletonClusters();
-
-            update2 = reducedNetwork.runLouvainAlgorithm(resolution, random);
-
-            if (update2) {
-                update = true;
-
-                mergeClusters(reducedNetwork.getClusters());
-
-                runLocalMovingAlgorithm(resolution, random);
-            }
-        }
-
-        deleteClusteringStats();
-
-        return update;
-    }
-
-    public boolean runSmartLocalMovingAlgorithm(double resolution) {
-        return runSmartLocalMovingAlgorithm(resolution, new Random());
-    }
-
-    public boolean runSmartLocalMovingAlgorithm(double resolution, Random random) {
-        boolean update;
-        int i, j, k;
-        int[] reducedNetworkCluster, subnetworkCluster;
-        Network reducedNetwork;
-        Network[] subnetwork;
-
-        if ((cluster == null) || (nNodes == 1))
-            return false;
-
-        update = runLocalMovingAlgorithm(resolution, random);
-
-        if (nClusters < nNodes) {
-            if (!clusteringStatsAvailable)
-                calcClusteringStats();
-
-            subnetwork = getSubnetworks();
-
-            nClusters = 0;
-            for (i = 0; i < subnetwork.length; i++) {
-                subnetwork[i].initSingletonClusters();
-                subnetwork[i].runLocalMovingAlgorithm(resolution, random);
-
-                subnetworkCluster = subnetwork[i].getClusters();
-                for (j = 0; j < subnetworkCluster.length; j++)
-                    cluster[nodePerCluster[i][j]] = nClusters + subnetworkCluster[j];
-                nClusters += subnetwork[i].getNClusters();
-            }
-            calcClusteringStats();
-
-            reducedNetwork = getReducedNetwork();
-
-            reducedNetworkCluster = new int[nClusters];
-            i = 0;
-            for (j = 0; j < subnetwork.length; j++)
-                for (k = 0; k < subnetwork[j].getNClusters(); k++) {
-                    reducedNetworkCluster[i] = j;
-                    i++;
-                }
-            reducedNetwork.setClusters(reducedNetworkCluster);
-
-            update |= reducedNetwork.runSmartLocalMovingAlgorithm(resolution, random);
-
-            mergeClusters(reducedNetwork.getClusters());
-        }
-
-        deleteClusteringStats();
-
-        return update;
-    }
-
-    public void save(String fileName) throws IOException {
-        ObjectOutputStream objectOutputStream;
-
-        objectOutputStream = new ObjectOutputStream(new FileOutputStream(fileName));
-
-        objectOutputStream.writeObject(this);
-
-        objectOutputStream.close();
     }
 
     public void setClusters(int[] cluster) {

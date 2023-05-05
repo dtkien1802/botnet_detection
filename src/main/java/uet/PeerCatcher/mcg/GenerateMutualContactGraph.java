@@ -10,10 +10,9 @@ public class GenerateMutualContactGraph implements Runnable {
     private String OutputFolder;
     private int node1;
     private int node2;
-    private Thread t;
     private double mutual_contact_score_threshold;
 
-    private int frequency_threshold = PeerCatcherConfigure.FREQUENCY_THRESHOLD;
+    private final int frequency_threshold = PeerCatcherConfigure.FREQUENCY_THRESHOLD;
     GenerateMutualContactGraph(String OutputFolder_, String node1IPSet_, String node2IPSet_, int node1_,
                                            int node2_, double mutual_contact_score_threshold_) {
         node1IPSet = node1IPSet_;
@@ -29,15 +28,11 @@ public class GenerateMutualContactGraph implements Runnable {
 //		System.out.println("Running: node1: " + node1 + " node2: " + node2);
         String[] st1 = node1IPSet.split(", ");
         String[] st2 = node2IPSet.split(", ");
-        double score = -1;
-        Set<String> set1 = new HashSet<String>();
-        for (String line : st1) {
-            set1.add(line);
-        }
-        Set<String> set2 = new HashSet<String>();
-        for (String line : st2) {
-            set2.add(line);
-        }
+        double score;
+        Set<String> set1 = new HashSet<>();
+        Collections.addAll(set1, st1);
+        Set<String> set2 = new HashSet<>();
+        Collections.addAll(set2, st2);
 
         Set<String> maxset = set1;
         Set<String> minset = set2;
@@ -53,15 +48,15 @@ public class GenerateMutualContactGraph implements Runnable {
         Set<String> s1 = minset;
 
         int sumIp = 0;
-        int tempFreq1 = 0;
-        int tempFreq2 = 0;
+        int tempFreq1;
+        int tempFreq2;
 
-        String srcIP1 = "";
-        String srcIP2 = "";
-        String dstIP = "";
-        String proto = "";
-        String bppout = "";
-        String bppin = "";
+        String srcIP1;
+        String srcIP2;
+        String dstIP;
+        String proto;
+        String bppout;
+        String bppin;
         String[] temp1;
         String[] temp2;
 
@@ -95,10 +90,6 @@ public class GenerateMutualContactGraph implements Runnable {
         set2.clear();
         minset.clear();
         maxset.clear();
-        set1 = null;
-        set2 = null;
-        minset = null;
-        maxset = null;
         score = (double) (sumIp) / (double) (a + b - c);
 
 //		System.out.println(node1 + " - " + node2 + " - score: " + score + " sumIp: " + sumIp + " totalIP: " + (a + b - c) + " totalInnerIP: " + c);
@@ -106,19 +97,12 @@ public class GenerateMutualContactGraph implements Runnable {
         if (c > 0 && score > mutual_contact_score_threshold) {
             try {
                 PrintWriter writer = new PrintWriter(
-                        new FileOutputStream(new File(OutputFolder + "LouvainInput.txt"), true));
+                        new FileOutputStream(OutputFolder + "LouvainInput.txt", true));
                 writer.println(node1 + "\t" + node2 + "\t" + score);
                 writer.close();
             } catch (FileNotFoundException e) {
                 e.printStackTrace();
             }
-        }
-    }
-
-    public void start() {
-        if (t == null) {
-            t = new Thread(this);
-            t.start();
         }
     }
 }

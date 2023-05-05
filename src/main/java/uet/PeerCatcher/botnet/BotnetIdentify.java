@@ -17,7 +17,7 @@ import uet.PeerCatcher.main.FileModifier;
 
 public class BotnetIdentify {
 
-    public static Set<String> PotentialIP = new HashSet<String>();
+    public static Set<String> PotentialIP = new HashSet<>();
 
     public static double botnet_detection_threshold_bgp;
     public static double botnet_detection_threshold_mcs;
@@ -51,14 +51,15 @@ public class BotnetIdentify {
             }
         }
 
+        assert listOfFiles != null;
         for (File file : listOfFiles) {
-            if (file.isFile() && !file.getName().substring(0, 1).equals(".")) {
+            if (file.isFile() && file.getName().charAt(0) != '.') {
 
-                String line = "";
+                String line;
                 BufferedReader br = new BufferedReader(new FileReader(file.getPath())); // Read the Community Detection
                 // Result
 
-                HashMap<String, ArrayList<String>> louvain_results = new HashMap<String, ArrayList<String>>();
+                HashMap<String, ArrayList<String>> louvain_results = new HashMap<>();
 
                 while ((line = br.readLine()) != null) {
 
@@ -66,7 +67,7 @@ public class BotnetIdentify {
                     if (louvain_results.containsKey(str[1])) {
                         louvain_results.get(str[1]).add(str[0]);
                     } else {
-                        ArrayList<String> temp = new ArrayList<String>();
+                        ArrayList<String> temp = new ArrayList<>();
                         temp.add(str[0]);
                         louvain_results.put(str[1], temp);
                     }
@@ -77,17 +78,17 @@ public class BotnetIdentify {
                     String com_id = entry.getKey();
                     ArrayList<String> nodes = entry.getValue();
 
-                    HashSet<String> nodes_ips = new HashSet<String>();
+                    HashSet<String> nodes_ips = new HashSet<>();
 
                     if (nodes.size() > 2) {
                         double resolution = Double.parseDouble(file.getName().split("_")[2].split("\\.")[0]);
                         PrintWriter pw = new PrintWriter(
                                 new FileOutputStream(
-                                        new File(PeerCatcherConfigure.ROOT_LOCATION + Graph
-                                                + "/communities_scores_calculate/" + Graph + "_" + resolution + ".txt"),
+                                        PeerCatcherConfigure.ROOT_LOCATION + Graph
+                                                + "/communities_scores_calculate/" + Graph + "_" + resolution + ".txt",
                                         true));
-                        PrintWriter pw_2 = new PrintWriter(new FileOutputStream(new File(PeerCatcherConfigure.ROOT_LOCATION
-                                + Graph + "/communities_scores_calculate/" + Graph + "_" + resolution + "_2.txt"),
+                        PrintWriter pw_2 = new PrintWriter(new FileOutputStream(PeerCatcherConfigure.ROOT_LOCATION
+                                + Graph + "/communities_scores_calculate/" + Graph + "_" + resolution + "_2.txt",
                                 true));
 
                         double Sum_BGP = 0;
@@ -130,17 +131,17 @@ public class BotnetIdentify {
                             PotentialIP.addAll(nodes);
 
                             PrintWriter pw_ = new PrintWriter(
-                                    new FileOutputStream(new File(PeerCatcherConfigure.ROOT_LOCATION + Graph
-                                            + "/botnet_detection/bot_detection_input.txt"), true));
+                                    new FileOutputStream(PeerCatcherConfigure.ROOT_LOCATION + Graph
+                                            + "/botnet_detection/bot_detection_input.txt", true));
                             BufferedReader br_ = new BufferedReader(new FileReader(
                                     PeerCatcherConfigure.ROOT_LOCATION + Graph + "/mutual_contact_graph/LouvainInput.txt"));
-                            Set<String> Edges = new HashSet<String>();
+                            Set<String> Edges = new HashSet<>();
                             while ((line = br_.readLine()) != null) {
                                 if (nodes.contains(line.split("\t")[0]) && nodes.contains(line.split("\t")[1])) {
                                     Edges.add(line.split("\t")[0] + "," + line.split("\t")[1]);
                                 }
                             }
-                            pw_.println(nodes.toString() + "\t" + Edges.toString());
+                            pw_.println(nodes + "\t" + Edges);
                             br_.close();
                             pw_.close();
                         }
@@ -155,8 +156,8 @@ public class BotnetIdentify {
                 PeerCatcherConfigure.ROOT_LOCATION + Graph + "/botnet_detection/botnet_detection.txt");
         BufferedReader br = new BufferedReader(
                 new FileReader(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/mutual_contact_graph/IDtoIP.txt"));
-        String line = "";
-        Set<String> PotentialIP_Set = new HashSet<String>();
+        String line;
+        Set<String> PotentialIP_Set = new HashSet<>();
         while ((line = br.readLine()) != null) {
             if (PotentialIP.contains(line.split("\t")[0])) {
                 pw.println(line.split("\t")[0] + "\t" + line.split("\t")[1] + "\t" + line.split("\t")[2]);

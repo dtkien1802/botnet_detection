@@ -244,7 +244,6 @@ public class P2PHostIdentify {
         }
 
         writer.close();
-
     }
 
     private static boolean filterPortDiversity(Iterable<Text> values) {

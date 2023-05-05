@@ -1,34 +1,33 @@
 package uet.PeerCatcher.main;
 
-import java.io.File;
+import uet.PeerCatcher.botnet.BotnetIdentify;
+import uet.PeerCatcher.louvain.LouvainMain;
+import uet.PeerCatcher.mcg.CalculateMutualContactScore;
+import uet.PeerCatcher.p2p.P2PHostIdentify;
+
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
-
-import uet.PeerCatcher.louvain.LouvainMain;
-import uet.PeerCatcher.p2p.P2PHostIdentify;
-import uet.PeerCatcher.mcg.CalculateMutualContactScore;
-import uet.PeerCatcher.botnet.BotnetIdentify;
 public class MAIN {
-    public static void Experiment(int ID) throws IllegalArgumentException, IOException, InterruptedException {
-        PrintWriter pw = new PrintWriter(new FileOutputStream(new File("ExTime"), true));
+    public static void Experiment(int ID) throws IllegalArgumentException, IOException {
+        PrintWriter pw = new PrintWriter(new FileOutputStream("ExTime", true));
 
         long st_time = System.currentTimeMillis();
 
         long st_time_1 = System.currentTimeMillis();
-        P2PHostIdentify.run(ID + "");
+        P2PHostIdentify.run(String.valueOf(ID));
         long end_time_1 = System.currentTimeMillis();
 
         long st_time_2 = System.currentTimeMillis();
-        CalculateMutualContactScore.run(ID + "");
+        CalculateMutualContactScore.run(String.valueOf(ID));
         long end_time_2 = System.currentTimeMillis();
 
         long st_time_3 = System.currentTimeMillis();
-        LouvainMain.run(ID + "");
+        LouvainMain.run(String.valueOf(ID));
         long end_time_3 = System.currentTimeMillis();
 
         long st_time_4 = System.currentTimeMillis();
-        BotnetIdentify.run(ID + "");
+        BotnetIdentify.run(String.valueOf(ID));
         long end_time_4 = System.currentTimeMillis();
 
         long end_time = System.currentTimeMillis();
