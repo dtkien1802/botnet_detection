@@ -8,6 +8,8 @@ public class PeerCatcherConfigure {
     public static double LOUVAIN_COMMUNITY_DETECTION_RESOLUTION = 1.0;
     public static String ROOT_LOCATION = "/home/dtkien/Downloads/datachay/sality/";
 
+    public static int PORT_DIVERSITY_THRESHOLD = 2100;
+
     //    avgmcr
     public static double[] BOTNET_DETECTION_THRESHOLD_MCS_SET = { 0.2 };
 

@@ -26,7 +26,7 @@ import org.apache.log4j.BasicConfigurator;
 import uet.PeerCatcher.config.PeerCatcherConfigure;
 import uet.PeerCatcher.main.FileModifier;
 import uet.PeerCatcher.mcg.CalculateMutualContactScore;
-
+import java.util.*;
 public class P2PHostIdentify {
 
     public static class Generate_Mutual_Contact_Sets_Mapper extends Mapper<Object, Text, Text, Text> {
@@ -93,20 +93,7 @@ public class P2PHostIdentify {
                 }
             }
 
-            if(flag == 2) {
-                Set<String> PortSet = new HashSet<>();
-                for (Text i : values) {
-                    String[] set_values = i.toString().split(",");
-                    PortSet.add(set_values[1]);
-                    PortSet.add(set_values[2]);
-                    if (PortSet.size() >= 2100) {
-                        flag = 1;
-                        break;
-                    }
-                }
-            }
-
-            if (flag == 1) {
+            if (flag == 2 && filterPortDiversity(values)) {
                 String[] sets = key.toString().split(",");
                 for (String i : cache) {
                     context.write(new Text(sets[0]), new Text(sets[1] + "," + i + "," + sets[2] + "," + sets[3]));
@@ -127,6 +114,8 @@ public class P2PHostIdentify {
     private static final int p2p_host_detection_threshold = PeerCatcherConfigure.P2P_HOST_DETECTION_THRESHOLD_DEFAULT;
 
     private static final int p2p_host_detection_threshold_number_of_ips = PeerCatcherConfigure.P2P_HOST_DETECTION_THRESHOLD_NumberOfIPs;
+
+    private static final int port_diversity_threshold = PeerCatcherConfigure.PORT_DIVERSITY_THRESHOLD;
 
     public static void run(String ID) throws IllegalArgumentException, IOException {
         String Graph = "Graph_" + ID;
@@ -272,5 +261,51 @@ public class P2PHostIdentify {
         writer_IDtoIP.close();
         writer2.close();
 
+    }
+
+    private static boolean filterPortDiversity(Iterable<Text> values) {
+        class PortDiversityHelper {
+            private Set<String> portSet = new HashSet<>();
+            private Iterator<Text> iterator;
+
+            private PortDiversityHelper(Iterable<Text> inputValues) {
+                iterator = inputValues.iterator();
+            }
+
+            private String[] extractSetValues(Text textValue) {
+                return textValue.toString().split(",");
+            }
+
+            private void addToPortSet(String[] setValues) {
+                portSet.add(setValues[1]);
+                portSet.add(setValues[2]);
+            }
+
+            private boolean isThresholdReached() {
+                return portSet.size() >= port_diversity_threshold;
+            }
+
+            private boolean hasNext() {
+                return iterator.hasNext();
+            }
+
+            private Text next() {
+                return iterator.next();
+            }
+
+            private boolean process() {
+                while (hasNext()) {
+                    String[] setValues = extractSetValues(next());
+                    addToPortSet(setValues);
+                    if (isThresholdReached()) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
+        PortDiversityHelper helper = new PortDiversityHelper(values);
+        return helper.process();
     }
 }
