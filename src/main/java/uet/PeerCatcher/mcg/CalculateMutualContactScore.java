@@ -155,7 +155,7 @@ public class CalculateMutualContactScore {
         BufferedReader br_Freq;
         try {
             br_Freq = new BufferedReader(new FileReader(
-                    PeerCatcherConfigure.ROOT_LOCATION + "Graph_1/p2p_host_frequency2/p2pFrequency2.txt"
+                    PeerCatcherConfigure.ROOT_LOCATION + "Graph_1/p2p_host_frequency/p2pFrequency.txt"
             ));
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);

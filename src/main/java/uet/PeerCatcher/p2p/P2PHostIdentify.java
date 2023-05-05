@@ -180,7 +180,7 @@ public class P2PHostIdentify {
                 break;
             }
         }
-        testFrequency(Graph);
+        calculateFrequency(Graph);
         JobControl jobCtrl1 = new JobControl("map");
         jobCtrl1.addJob(ctrl_Job_Generate_Mutual_Contact_Sets);
         t = new Thread(jobCtrl1);
@@ -197,36 +197,24 @@ public class P2PHostIdentify {
 
     }
 
-    private static void testFrequency(String Graph) throws IllegalArgumentException, IOException {
+    private static void calculateFrequency(String Graph) throws IllegalArgumentException, IOException {
         String InputFolder = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_detection";
 
         FileModifier.deleteDir(new File(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency"));
-        File f = new File(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency");
+        File f2 = new File(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency");
 
-        boolean created = f.mkdir();
-        if (created) {
+        boolean created2 = f2.mkdir();
+        if (created2) {
             System.out.println("Directory p2p_host_frequency created successfully");
         } else {
             System.out.println("Failed to create directory p2p_host_frequency");
         }
 
-        FileModifier.deleteDir(new File(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency2"));
-        File f2 = new File(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency2");
-
-        boolean created2 = f2.mkdir();
-        if (created2) {
-            System.out.println("Directory p2p_host_frequency2 created successfully");
-        } else {
-            System.out.println("Failed to create directory p2p_host_frequency2");
-        }
-
-        String OutputFolder = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency/";
-        String OutputFolder2 = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency2/";
+        String OutputFolder2 = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency/";
         File folder = new File(InputFolder + "/");
         File[] listOfFiles = folder.listFiles();
 
-        PrintWriter writer_IDtoIP = new PrintWriter(OutputFolder + "p2pFrequency.txt", "UTF-8");
-        PrintWriter writer2 = new PrintWriter(OutputFolder2 + "p2pFrequency2.txt", "UTF-8");
+        PrintWriter writer2 = new PrintWriter(OutputFolder2 + "p2pFrequency.txt", "UTF-8");
         String line;
         HashMap<String, Integer> map_p2p = new HashMap<>();
         HashMap<String, Integer> map_total_p2p = new HashMap<>();
@@ -253,12 +241,8 @@ public class P2PHostIdentify {
         }
         for (String i : map_p2p.keySet()) {
             writer2.println(i + "\t" + map_p2p.get(i));
-            if (map_p2p.get(i) >= 0) {
-                writer_IDtoIP.println(i);
-            }
         }
 
-        writer_IDtoIP.close();
         writer2.close();
 
     }
