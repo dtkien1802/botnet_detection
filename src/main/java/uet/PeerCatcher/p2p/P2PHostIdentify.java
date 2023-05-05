@@ -201,20 +201,20 @@ public class P2PHostIdentify {
         String InputFolder = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_detection";
 
         FileModifier.deleteDir(new File(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency"));
-        File f2 = new File(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency");
+        File f = new File(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency");
 
-        boolean created2 = f2.mkdir();
-        if (created2) {
+        boolean created = f.mkdir();
+        if (created) {
             System.out.println("Directory p2p_host_frequency created successfully");
         } else {
             System.out.println("Failed to create directory p2p_host_frequency");
         }
 
-        String OutputFolder2 = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency/";
+        String OutputFolder = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency/";
         File folder = new File(InputFolder + "/");
         File[] listOfFiles = folder.listFiles();
 
-        PrintWriter writer2 = new PrintWriter(OutputFolder2 + "p2pFrequency.txt", "UTF-8");
+        PrintWriter writer = new PrintWriter(OutputFolder + "p2pFrequency.txt", "UTF-8");
         String line;
         HashMap<String, Integer> map_p2p = new HashMap<>();
         HashMap<String, Integer> map_total_p2p = new HashMap<>();
@@ -240,10 +240,10 @@ public class P2PHostIdentify {
             }
         }
         for (String i : map_p2p.keySet()) {
-            writer2.println(i + "\t" + map_p2p.get(i));
+            writer.println(i + "\t" + map_p2p.get(i));
         }
 
-        writer2.close();
+        writer.close();
 
     }
 
