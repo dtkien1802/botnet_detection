@@ -54,7 +54,7 @@ public class P2PHostIdentify {
         }
     }
 
-    public static class P2P_Host_Detection_Mapper extends Mapper<Object, Text, Text, Text> {
+    public static class P2PHostDetectionMapper extends Mapper<Object, Text, Text, Text> {
         @Override
         protected void map(Object key, Text value, Context context) throws IOException, InterruptedException {
             String[] line = value.toString().split("\t");
@@ -120,14 +120,16 @@ public class P2PHostIdentify {
     public static void run(String ID) throws IllegalArgumentException, IOException {
         String Graph = "Graph_" + ID;
 
-        String InputFolder = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/INPUT/P2P_Legi_Map";
-        System.out.print(InputFolder);
-        File folder = new File(InputFolder + "/");
+        String inputFolder = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/INPUT/P2P_Legi_Map";
+        File folder = new File(inputFolder);
         File[] listOfFiles = folder.listFiles();
-        HashMap<String, String> IP_MAP = new HashMap<>();
+        HashMap<String, String> ipMap = new HashMap<>();
 
-        assert listOfFiles != null;
-        CalculateMutualContactScore.buildIPMap(InputFolder, listOfFiles, IP_MAP);
+        if (listOfFiles == null) {
+            throw new IOException("Error: No files found in the input folder");
+        }
+
+        CalculateMutualContactScore.buildIPMap(inputFolder, listOfFiles, ipMap);
 
         BasicConfigurator.configure();
         JobConf conf = new JobConf(P2PHostIdentify.class);
@@ -137,7 +139,7 @@ public class P2PHostIdentify {
         Job Job_p2p_host_detection = Job.getInstance();
         Job_p2p_host_detection.setJobName("Job_p2p_host_detection_" + Graph);
         Job_p2p_host_detection.setJarByClass(P2PHostIdentify.class);
-        Job_p2p_host_detection.setMapperClass(P2P_Host_Detection_Mapper.class);
+        Job_p2p_host_detection.setMapperClass(P2PHostDetectionMapper.class);
         Job_p2p_host_detection.setReducerClass(P2P_Host_Detection_Reducer.class);
         Job_p2p_host_detection.setOutputKeyClass(Text.class);
         Job_p2p_host_detection.setOutputValueClass(Text.class);
@@ -198,7 +200,7 @@ public class P2PHostIdentify {
     }
 
     private static void calculateFrequency(String Graph) throws IllegalArgumentException, IOException {
-        String InputFolder = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_detection";
+        String inputFolder = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_detection";
 
         FileModifier.deleteDir(new File(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency"));
         File f = new File(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency");
@@ -210,24 +212,28 @@ public class P2PHostIdentify {
             System.out.println("Failed to create directory p2p_host_frequency");
         }
 
-        String OutputFolder = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency/";
-        File folder = new File(InputFolder + "/");
+        String outputFolder = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/p2p_host_frequency/";
+        File folder = new File(inputFolder + "/");
         File[] listOfFiles = folder.listFiles();
 
-        PrintWriter writer = new PrintWriter(OutputFolder + "p2pFrequency.txt", "UTF-8");
+        if (listOfFiles == null) {
+            throw new IOException("Error: No files found in the input folder");
+        }
+
+        PrintWriter writer = new PrintWriter(outputFolder + "p2pFrequency.txt", "UTF-8");
         String line;
-        HashMap<String, Integer> map_p2p = new HashMap<>();
+        HashMap<String, Integer> frequencyMap = new HashMap<>();
         HashMap<String, Integer> map_total_p2p = new HashMap<>();
-        assert listOfFiles != null;
+
         for (File file : listOfFiles) {
             if (file.isFile() && file.getName().charAt(0) != '.') {
-                BufferedReader br = new BufferedReader(new FileReader(InputFolder + "/" + file.getName()));
+                BufferedReader br = new BufferedReader(new FileReader(inputFolder + "/" + file.getName()));
 
                 while ((line = br.readLine()) != null) {
-                    if (!map_p2p.containsKey(line)) {
-                        map_p2p.put(line, 1);
+                    if (!frequencyMap.containsKey(line)) {
+                        frequencyMap.put(line, 1);
                     } else {
-                        map_p2p.replace(line, map_p2p.get(line) + 1);
+                        frequencyMap.replace(line, frequencyMap.get(line) + 1);
                     }
                     String key2 = line.split("\t")[0] + "\t" + line.split("\t")[1].split(",")[1];
                     if (!map_total_p2p.containsKey(key2)) {
@@ -239,8 +245,8 @@ public class P2PHostIdentify {
                 br.close();
             }
         }
-        for (String i : map_p2p.keySet()) {
-            writer.println(i + "\t" + map_p2p.get(i));
+        for (String i : frequencyMap.keySet()) {
+            writer.println(i + "\t" + frequencyMap.get(i));
         }
 
         writer.close();

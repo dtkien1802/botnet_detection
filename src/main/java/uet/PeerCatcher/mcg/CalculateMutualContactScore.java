@@ -17,15 +17,18 @@ public class CalculateMutualContactScore {
     private static final double mutual_contact_score_threshold = PeerCatcherConfigure.MUTUAL_CONTACT_SCORE_THRESHOLD;
 
     public static void Generate_Mutual_Contact_Graph(String Graph) throws IllegalArgumentException, IOException {
-        String InputFolder = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/INPUT/P2P_Legi_Map";
-        File folder = new File(InputFolder + "/");
+        String inputFolder = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/INPUT/P2P_Legi_Map";
+        File folder = new File(inputFolder + "/");
         File[] listOfFiles = folder.listFiles();
-        HashMap<String, String> IP_MAP = new HashMap<>();
+        HashMap<String, String> ipMap = new HashMap<>();
 
-        assert listOfFiles != null;
-        buildIPMap(InputFolder, listOfFiles, IP_MAP);
+        if (listOfFiles == null) {
+            throw new IOException("Error: No files found in the input folder");
+        }
 
-        InputFolder = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/mutual_contact_sets";
+        buildIPMap(inputFolder, listOfFiles, ipMap);
+
+        inputFolder = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/mutual_contact_sets";
 
         FileModifier.deleteDir(new File(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/mutual_contact_graph"));
         File f = new File(PeerCatcherConfigure.ROOT_LOCATION + Graph + "/mutual_contact_graph");
@@ -37,11 +40,11 @@ public class CalculateMutualContactScore {
             System.out.println("Failed to create directory mutual_contact_graph");
         }
 
-        String OutputFolder = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/mutual_contact_graph/";
-        folder = new File(InputFolder + "/");
+        String outputFolder = PeerCatcherConfigure.ROOT_LOCATION + Graph + "/mutual_contact_graph/";
+        folder = new File(inputFolder + "/");
         listOfFiles = folder.listFiles();
 
-        PrintWriter writer_IDtoIP = new PrintWriter(OutputFolder + "IDtoIP.txt", "UTF-8");
+        PrintWriter writer_IDtoIP = new PrintWriter(outputFolder + "IDtoIP.txt", "UTF-8");
 
         int ID_NUM = 0;
 
@@ -49,7 +52,7 @@ public class CalculateMutualContactScore {
         assert listOfFiles != null;
         for (File file : listOfFiles) {
             if (file.isFile() && file.getName().charAt(0) != '.') {
-                BufferedReader br = new BufferedReader(new FileReader(InputFolder + "/" + file.getName()));
+                BufferedReader br = new BufferedReader(new FileReader(inputFolder + "/" + file.getName()));
 
                 while (br.readLine() != null) {
                     ID_NUM++;
@@ -60,13 +63,13 @@ public class CalculateMutualContactScore {
 
         int ID_NUM_indx = 0;
         int i = 0;
-        String[] IP = new String[ID_NUM];
-        String[] InSet = new String[ID_NUM];
+        String[] ipAddresses = new String[ID_NUM];
+        String[] contactSets = new String[ID_NUM];
 
         for (File file : listOfFiles) {
 
             if (file.isFile() && file.getName().charAt(0) != '.') {
-                BufferedReader br = new BufferedReader(new FileReader(InputFolder + "/" + file.getName()));
+                BufferedReader br = new BufferedReader(new FileReader(inputFolder + "/" + file.getName()));
 
 
                 while ((line = br.readLine()) != null) {
@@ -75,8 +78,8 @@ public class CalculateMutualContactScore {
                     String set = parts[1].replace("[", "");
                     set = set.replace("]", "");
 
-                    IP[i] = parts[0];
-                    InSet[i] = set;
+                    ipAddresses[i] = parts[0];
+                    contactSets[i] = set;
 
                     i++;
 
@@ -93,34 +96,31 @@ public class CalculateMutualContactScore {
                         Prefix24.add(P24);
                         Prefix32.add(IPANDProto);
                     }
-                    writer_IDtoIP.println(ID_NUM_indx + "\t" + parts[0] + "\t" + IP_MAP.getOrDefault(parts[0].split(",")[0], "Normal")
+                    writer_IDtoIP.println(ID_NUM_indx + "\t" + parts[0] + "\t" + ipMap.getOrDefault(parts[0].split(",")[0], "Normal")
                             + "\t" + Prefix16.size() + "\t" + Prefix24.size() + "\t" + Prefix32.size());
                     ID_NUM_indx++;
-                    Prefix16.clear();
-                    Prefix24.clear();
-                    Prefix32.clear();
                 }
                 br.close();
             }
         }
         writer_IDtoIP.close();
 
-        Generate_HashMap();
+        generateHashMap();
 
         ExecutorService executor = Executors.newFixedThreadPool(256);
 
-        for (int j = 0; j < IP.length; j++) {
-            for (int k = j + 1; k < IP.length; k++) {
-                String[] sts1 = IP[j].split(",");
-                String[] sts2 = IP[k].split(",");
+        for (int j = 0; j < ipAddresses.length; j++) {
+            for (int k = j + 1; k < ipAddresses.length; k++) {
+                String[] sts1 = ipAddresses[j].split(",");
+                String[] sts2 = ipAddresses[k].split(",");
 
                 String st1 = sts1[1] + "," + sts1[2] + "," + sts1[3];
                 String st2 = sts2[1] + "," + sts2[2] + "," + sts2[3];
 
                 if (st1.equals(st2)) {
 
-                    GenerateMutualContactGraph R = new GenerateMutualContactGraph(OutputFolder,
-                            InSet[j], InSet[k], j, k, mutual_contact_score_threshold);
+                    GenerateMutualContactGraph R = new GenerateMutualContactGraph(outputFolder,
+                            contactSets[j], contactSets[k], j, k, mutual_contact_score_threshold);
                     executor.execute(R);
                 }
             }
@@ -130,14 +130,14 @@ public class CalculateMutualContactScore {
 
     }
 
-    public static void buildIPMap(String inputFolder, File[] listOfFiles, HashMap<String, String> IP_MAP) throws IOException {
+    public static void buildIPMap(String inputFolder, File[] listOfFiles, HashMap<String, String> ipMap) throws IOException {
         for (File file : listOfFiles) {
             if (file.isFile() && file.getName().charAt(0) != '.') {
                 BufferedReader br = new BufferedReader(new FileReader(inputFolder + "/" + file.getName()));
                 String line;
                 while ((line = br.readLine()) != null && line.contains(".")) {
                     String[] lines = line.split("\t");
-                    IP_MAP.put(lines[0], lines[1]);
+                    ipMap.put(lines[0], lines[1]);
                 }
                 br.close();
             }
@@ -151,7 +151,7 @@ public class CalculateMutualContactScore {
     }
 
 
-    public static void Generate_HashMap() throws IllegalArgumentException, IOException {
+    public static void generateHashMap() throws IllegalArgumentException, IOException {
         BufferedReader br_Freq;
         try {
             br_Freq = new BufferedReader(new FileReader(

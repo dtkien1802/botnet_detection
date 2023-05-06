@@ -7,19 +7,19 @@ import java.util.*;
 public class GenerateMutualContactGraph implements Runnable {
     private String node1IPSet;
     private String node2IPSet;
-    private String OutputFolder;
+    private String outputFolder;
     private int node1;
     private int node2;
     private double mutual_contact_score_threshold;
 
     private final int frequency_threshold = PeerCatcherConfigure.FREQUENCY_THRESHOLD;
-    GenerateMutualContactGraph(String OutputFolder_, String node1IPSet_, String node2IPSet_, int node1_,
+    GenerateMutualContactGraph(String outputFolder_, String node1IPSet_, String node2IPSet_, int node1_,
                                            int node2_, double mutual_contact_score_threshold_) {
         node1IPSet = node1IPSet_;
         node2IPSet = node2IPSet_;
         node1 = node1_;
         node2 = node2_;
-        OutputFolder = OutputFolder_;
+        outputFolder = outputFolder_;
         mutual_contact_score_threshold = mutual_contact_score_threshold_;
     }
 
@@ -97,7 +97,7 @@ public class GenerateMutualContactGraph implements Runnable {
         if (c > 0 && score > mutual_contact_score_threshold) {
             try {
                 PrintWriter writer = new PrintWriter(
-                        new FileOutputStream(OutputFolder + "LouvainInput.txt", true));
+                        new FileOutputStream(outputFolder + "LouvainInput.txt", true));
                 writer.println(node1 + "\t" + node2 + "\t" + score);
                 writer.close();
             } catch (FileNotFoundException e) {
